@@ -1,5 +1,5 @@
-from connect4 import *
-from connect4game import *
+from connectFour import *
+from connectFourGame import *
 
 def main():
     player1 = 'random'

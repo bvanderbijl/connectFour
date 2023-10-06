@@ -2,13 +2,14 @@ import pygame
 import sys
 import math
 
-from connect4 import *
+from connectFour import *
 from agents import *
 
 BLUE = (0,0,255)
 BLACK = (0,0,0)
 RED = (255,0,0)
 YELLOW = (255,255,0)
+WHITE = (255,255,255)
 
 SQUARESIZE = 100
 RADIUS = int(SQUARESIZE/2 - 5)
@@ -76,14 +77,25 @@ class ConnectFourGameAgent:
                     
                     self.draw_board()
                 
-            if self.agent.game_finished():
-                winner = self.agent.next_move() + 1
-                color = RED if winner == 1 else YELLOW
-                label = self.font.render(f"Player {winner} wins!!", 1, color)
-                self.screen.blit(label, (40,10))
-                pygame.display.update()
+                if self.agent.winning_move(self.agent.next_move()):
+                    winner = self.agent.next_move() + 1
+                    color = RED if winner == 1 else YELLOW
+                    label = self.font.render(f"Player {winner} wins!!", 1, color)
+                    self.screen.blit(label, (40,10))
+                    pygame.display.update()
+                    
+                    pygame.time.wait(3000)
                 
-                pygame.time.wait(3000)
+                elif self.agent.is_draw():
+                    color = WHITE
+                    label = self.font.render(f"It is a draw!", 1, color)
+                    self.screen.blit(label, (40,10))
+                    pygame.display.update()
+                    
+                    pygame.time.wait(3000)
+                    
+        
+        pygame.display.quit()
     
     def select_user(self, user_type, player_number):
         if user_type == 'human':
@@ -91,7 +103,13 @@ class ConnectFourGameAgent:
         elif user_type == 'random':
             return RandomConnectPlayer(player_number)
         else:
-            raise UnknownUserException()
+            raise UnknownUserTypeException()
 
-class UnknownUserException():
-    pass
+
+class UnknownUserTypeException(Exception):
+    def __init__(self, message, errors):            
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+            
+        # Now for your custom code...
+        self.errors = errors

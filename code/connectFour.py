@@ -47,29 +47,29 @@ class connectFourAgent:
     def get_valid_moves(self):
         return [i + 1 for i, x in enumerate(self.board[self.row_count-1]) if x == -1]
     
-    def winning_move(self, piece):
+    def winning_move(self, player):
         # Check horizontal locations for win
         for c in range(self.column_count-3):
             for r in range(self.row_count):
-                if self.board[r][c] == piece and self.board[r][c+1] == piece and self.board[r][c+2] == piece and self.board[r][c+3] == piece:
+                if self.board[r][c] == player and self.board[r][c+1] == player and self.board[r][c+2] == player and self.board[r][c+3] == player:
                     return True
     
         # Check vertical locations for win
         for c in range(self.column_count):
             for r in range(self.row_count-3):
-                if self.board[r][c] == piece and self.board[r+1][c] == piece and self.board[r+2][c] == piece and self.board[r+3][c] == piece:
+                if self.board[r][c] == player and self.board[r+1][c] == player and self.board[r+2][c] == player and self.board[r+3][c] == player:
                     return True
     
         # Check positively sloped diaganols
         for c in range(self.column_count-3):
             for r in range(self.row_count-3):
-                if self.board[r][c] == piece and self.board[r+1][c+1] == piece and self.board[r+2][c+2] == piece and self.board[r+3][c+3] == piece:
+                if self.board[r][c] == player and self.board[r+1][c+1] == player and self.board[r+2][c+2] == player and self.board[r+3][c+3] == player:
                     return True
     
         # Check negatively sloped diaganols
         for c in range(self.column_count-3):
             for r in range(3, self.row_count):
-                if self.board[r][c] == piece and self.board[r-1][c+1] == piece and self.board[r-2][c+2] == piece and self.board[r-3][c+3] == piece:
+                if self.board[r][c] == player and self.board[r-1][c+1] == player and self.board[r-2][c+2] == player and self.board[r-3][c+3] == player:
                     return True
         
         # else game is not finished

@@ -4,7 +4,7 @@ import numpy as np
 import gym
 import math
 
-from connect4 import *
+from projects.connectFour.code.connectFour import *
 
 
 def main():
