@@ -1,10 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
-import gym
-import math
 
-from projects.connectFour.code.connectFour import *
+from connectFour import *
 
 
 def main():
