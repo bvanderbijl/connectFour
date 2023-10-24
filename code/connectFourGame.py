@@ -28,7 +28,6 @@ class ConnectFourGameAgent:
         pygame.init()
         self.font = pygame.font.SysFont("monospace", 75)
         
-        
     def draw_board(self):
         board = self.agent.board
         for c in range(COLUMN_COUNT):
@@ -77,8 +76,8 @@ class ConnectFourGameAgent:
                     
                     self.draw_board()
                 
-                if self.agent.winning_move(self.agent.next_move()):
-                    winner = self.agent.next_move() + 1
+                if self.agent.winning_move(self.agent.next_player()):
+                    winner = self.agent.next_player() + 1
                     color = RED if winner == 1 else YELLOW
                     label = self.font.render(f"Player {winner} wins!!", 1, color)
                     self.screen.blit(label, (40,10))
@@ -102,11 +101,29 @@ class ConnectFourGameAgent:
             return None
         elif user_type == 'random':
             return RandomConnectPlayer(player_number)
+        elif user_type[0] == 'ai':
+            try:
+                input_shape = self.agent.board.flatten().shape
+                num_actions = len(self.agent.get_valid_moves())
+                episodes = 1000
+
+                return DQNAgent(input_shape, num_actions, episodes, model_name=user_type[1], epsilon=0, epsilon_min=0)
+            except:
+                raise ModelNotFoundException()
         else:
             raise UnknownUserTypeException()
 
 
 class UnknownUserTypeException(Exception):
+    def __init__(self, message, errors):            
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+            
+        # Now for your custom code...
+        self.errors = errors
+
+
+class ModelNotFoundException(Exception):
     def __init__(self, message, errors):            
         # Call the base class constructor with the parameters it needs
         super().__init__(message)

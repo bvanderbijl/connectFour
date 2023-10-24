@@ -1,107 +1,69 @@
-import tensorflow as tf
-from tensorflow import keras
 import numpy as np
 
 from connectFour import *
+from connectFourGame import *
+from agents import *
 
 
 def main():
     env = ConnectFourGymEnv()
 
-    input_shape = len(env.observation_space.flatten())
+    input_shape = env.observation_space.flatten().shape
     num_actions = len(env.action_space)
-    
-    policy_network = tf.keras.models.Sequential([
-        tf.keras.layers.Dense(32, activation='relu', input_shape=(input_shape,)),
-        tf.keras.layers.Dense(32, activation='relu'),
-        tf.keras.layers.Dense(num_actions, activation='softmax')
-    ])
+    episodes = 5000
+    batch_size = 100
 
-    # Set up the optimizer and loss function
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
-    
-    
-    # Set up lists to store episode rewards and lengths
-    episode_rewards = []
-    episode_lengths = []
+    agent = DQNAgent(0, input_shape, num_actions, episodes, model_name="agentv2.hdf5")
 
-    num_episodes = 1000
-    discount_factor = 0.99
+    start_state = env.reset()
+    start_state = np.reshape(start_state, (1,-1))
+    normalized_start_state = agent.normalize_board(start_state)
 
-    # Train the agent using the REINFORCE algorithm
-    for episode in range(num_episodes):
-        # Reset the environment and get the initial state
+    for e in range(episodes):
         state = env.reset()
-        episode_reward = 0
-        episode_length = 0
-
-        # Keep track of the states, actions, and rewards for each step in the episode
-        states = []
-        actions = []
-        rewards = []
-
-        # Run the episode
-        while True:
-            # Get the action probabilities from the policy network
-            action_probs = policy_network.predict(np.array([state]))[0]
-
-            # Choose an action based on the action probabilities
-            action = np.random.choice(num_actions, p=action_probs)
-
-            # Take the chosen action and observe the next state and reward
-            next_state, reward, done, _ = env.step(action)
-
-            # Store the current state, action, and reward
-            states.append(state)
-            actions.append(action)
-            rewards.append(reward)
-
-            # Update the current state and episode reward
-            state = next_state
-            episode_reward += reward
-            episode_length += 1
-
-            # End the episode if the environment is done
-            if done:
-                print('Episode {} done !!!!!!'.format(episode))
-                break
-
-        # Calculate the discounted rewards for each step in the episode
-        discounted_rewards = np.zeros_like(rewards)
-        running_total = 0
-        for i in reversed(range(len(rewards))):
-            running_total = running_total * discount_factor + rewards[i]
-            discounted_rewards[i] = running_total
-
-        # Normalize the discounted rewards
-        discounted_rewards -= np.mean(discounted_rewards)
-        discounted_rewards /= np.std(discounted_rewards)
-
-        # Convert the lists of states, actions, and discounted rewards to tensors
-        states = tf.convert_to_tensor(states)
-        actions = tf.convert_to_tensor(actions)
-        discounted_rewards = tf.convert_to_tensor(discounted_rewards)
-
-        # Train the policy network using the REINFORCE algorithm
-        with tf.GradientTape() as tape:
-            # Get the action probabilities from the policy network
-            action_probs = policy_network(states)
-            # Calculate the loss
-            loss = tf.cast(tf.math.log(tf.gather(action_probs,actions,axis=1,batch_dims=1)),tf.float64)
-            
-            loss = loss * discounted_rewards
-            loss = -tf.reduce_sum(loss)
-
-        # Calculate the gradients and update the policy network
-        grads = tape.gradient(loss, policy_network.trainable_variables)
-        optimizer.apply_gradients(zip(grads, policy_network.trainable_variables))
-
-        # Store the episode reward and length
-        episode_rewards.append(episode_reward)
-        episode_lengths.append(episode_length)
+        state = np.reshape(state, (1,-1))
         
-        policy_network.save('keras/')
+        previous_state = None
+        action = None
+        
+        total_rewards = 0
+        gained_reward_on_turn = 0
+        
+        while not env.game_over:
+            normalized_state = agent.normalize_board(state)
+            previous_action = action
+            
+            if type(previous_state) == np.ndarray and env.current_player == agent.player_number:
+                agent.memorize(previous_state, previous_action, gained_reward_on_turn, normalized_state, done)
+                gained_reward_on_turn = 0
+            
+            action = agent.make_move(env.agent)
+            new_state, reward, done, info = env.step(action)
+            
+            if agent.player_number == 1:
+                reward = reward * -1
+            
+            previous_state = normalized_state.copy()
+            state = np.reshape(new_state, (1,-1))
+            
+            gained_reward_on_turn += reward
+            total_rewards += reward
+        
+        if env.current_player == agent.player_number:
+            normalized_state = agent.normalize_board(state)
+            agent.memorize(normalized_state, action, gained_reward_on_turn, normalized_start_state, done)
+        else:
+            agent.memorize(previous_state, previous_action, gained_reward_on_turn, normalized_state, done)
+        
+        agent.learn(batch_size)
+        
+        if random.uniform(0, 1) < 0.5:
+            agent.switch_side()
+        
+        if e % 100 == 0:
+            print("episode: {}/{}, epsilon: {:.2f}, average: {:.2f}".format(e, episodes, agent.epsilon, avg_reward))
+            agent.save("agentv2.hdf5")
+
 
 if __name__ == "__main__":
     main()
